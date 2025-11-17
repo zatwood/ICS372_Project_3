@@ -1,0 +1,24 @@
+{
+  "order": {
+    "type": "togo",
+    "source": "Instacart",
+    "order_date": 1515354694451,
+    "items": [
+      {
+        "name":"Burger",
+        "quantity": 1,
+        "price": 8.99
+      },
+      {
+        "name":"Fries",
+        "quantity": 2,
+        "price": 3.99
+      },
+      {
+        "name":"Milkshake",
+        "quantity": 1,
+        "price": 8.95
+      }
+    ]
+  }
+}

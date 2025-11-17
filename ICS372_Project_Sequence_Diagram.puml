@@ -1,0 +1,151 @@
+@startuml ICS372_Project_Sequence_Diagram
+
+!theme plain
+
+title ICS372 Project - Order Tracking System Sequence Diagram
+
+' Application Startup
+actor User
+participant "Launcher" as Launcher
+participant "OrderTrackingApp" as App
+participant "OrderTrackingController" as Controller
+participant "OrderPersistence" as Persistence
+participant "OrderIn" as OrderIn
+participant "XmlOrderImporter" as XMLImporter
+database "File System" as Files
+
+== Application Startup ==
+User -> Launcher: main()
+Launcher -> App: main()
+App -> App: start(Stage)
+App -> Controller: initialize() [via FXML]
+Controller -> Persistence: hasSavedState()
+alt Saved state exists
+    Persistence -> Controller: loadOrderState()
+    Controller -> Controller: loadSavedOrderState()
+else No saved state
+    Controller -> OrderIn: readOrdersFromDirectory("uploads")
+    OrderIn -> Files: list files
+    Files --> OrderIn: file list
+    loop For each file
+        OrderIn -> OrderIn: readOrder(filename)
+        alt JSON file
+            OrderIn -> OrderIn: readOrderFromJson()
+        else XML file
+            OrderIn -> XMLImporter: importFromXml()
+            XMLImporter -> Files: read XML file
+            Files --> XMLImporter: XML content
+            XMLImporter --> OrderIn: ImportResult
+        end
+        OrderIn --> Controller: List<Order>
+    end
+end
+Controller -> Controller: setupOrderTables()
+Controller -> Controller: setupItemsTable()
+Controller -> OrderIn: startFileWatcher("uploads")
+OrderIn -> Files: WatchService setup
+
+== Real-time Order Detection ==
+group File Watcher Thread
+    Files -> OrderIn: file change event
+    OrderIn -> OrderIn: readOrder(newFile)
+    OrderIn -> Controller: onOrdersUpdated(newOrders)
+    Controller -> Controller: addOrdersToTables()
+    Controller -> Controller: saveOrderState()
+    Controller -> Persistence: saveOrderState()
+end
+
+== Order Processing Workflow ==
+User -> Controller: select pending order
+Controller -> Controller: showOrderDetails(order)
+User -> Controller: click "Start Order"
+Controller -> Controller: handleStartOrder()
+Controller -> Controller: moveOrder(pending → inProgress)
+Controller -> Controller: saveOrderState()
+Controller -> Persistence: saveOrderState()
+
+User -> Controller: select in-progress order
+User -> Controller: click "Complete Order"
+Controller -> Controller: handleCompleteOrder()
+Controller -> Controller: moveOrder(inProgress → completed)
+Controller -> Controller: saveOrderState()
+Controller -> Persistence: saveOrderState()
+
+== Order Deletion Workflow ==
+User -> Controller: select pending order
+User -> Controller: click "Delete Order"
+Controller -> Controller: handleDeletePendingOrder()
+Controller -> Persistence: saveCanceledOrder(order)
+Controller -> Controller: removeOrderFromTable()
+Controller -> Controller: saveOrderState()
+Controller -> Persistence: saveOrderState()
+
+== Undo Operations ==
+User -> Controller: click "Undo Start"
+Controller -> Controller: handleUndoStart()
+Controller -> Controller: moveOrder(inProgress → pending)
+Controller -> Controller: saveOrderState()
+Controller -> Persistence: saveOrderState()
+
+User -> Controller: click "Undo Complete"
+Controller -> Controller: handleUndoComplete()
+Controller -> Controller: moveOrder(completed → inProgress)
+Controller -> Controller: saveOrderState()
+Controller -> Persistence: saveOrderState()
+
+== Manual Refresh ==
+User -> Controller: click "Refresh"
+Controller -> Controller: handleRefresh()
+Controller -> OrderIn: readOrdersFromDirectory("uploads")
+OrderIn -> Files: list files
+Files --> OrderIn: file list
+loop For each file
+    OrderIn -> OrderIn: readOrder(filename)
+    OrderIn --> Controller: List<Order>
+end
+Controller -> Controller: reloadAllOrders()
+Controller -> Controller: saveOrderState()
+Controller -> Persistence: saveOrderState()
+
+== Auto-refresh Toggle ==
+User -> Controller: toggle auto-refresh
+Controller -> Controller: handleToggleAutoRefresh()
+alt Enable auto-refresh
+    Controller -> OrderIn: startPollingWatcher()
+else Disable auto-refresh
+    Controller -> OrderIn: stopFileWatcher()
+end
+
+== Application Shutdown ==
+User -> App: close application
+App -> Controller: cleanup
+Controller -> OrderIn: stopFileWatcher()
+Controller -> Persistence: saveOrderState()
+App -> App: stop()
+
+note over Controller
+Key Responsibilities:
+- Manage three order tables (Pending, In-Progress, Completed)
+- Handle user interactions (Start, Complete, Delete, Undo)
+- Coordinate with OrderIn for file watching
+- Persist state via OrderPersistence
+- Update UI in real-time
+end note
+
+note over OrderIn
+Key Responsibilities:
+- Monitor uploads directory for new files
+- Parse JSON and XML order files
+- Notify controller of changes
+- Support both WatchService and polling
+end note
+
+note over Persistence
+Key Responsibilities:
+- Save/load application state
+- Manage canceled orders
+- JSON-based persistence
+- Atomic operations
+end note
+
+@enduml
