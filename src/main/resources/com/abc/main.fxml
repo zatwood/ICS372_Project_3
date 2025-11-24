@@ -1,25 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
 
-<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.abc.OrderTrackingController">
+<BorderPane xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.abc.OrderTrackingController">
 
     <top>
         <VBox spacing="10" style="-fx-padding: 10;">
-            <Label text="Order Tracking System"
-                   style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"
-                   BorderPane.alignment="CENTER" />
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Button text="Refresh Orders" onAction="#handleRefresh"
-                        style="-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #3498db; -fx-text-fill: white;" />
-                <Button text="Enable Auto-Refresh" fx:id="toggleAutoRefreshBtn" onAction="#handleToggleAutoRefresh"
-                        style="-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #27ae60; -fx-text-fill: white;" />
-                <Label fx:id="autoRefreshLabel" text="Auto-refresh: ON"
-                       style="-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-padding: 5 0;" />
-                <Label text="Watches 'uploads' directory for new JSON and XML files"
-                       style="-fx-text-fill: #7f8c8d; -fx-font-style: italic; -fx-padding: 5 0;" />
+            <Label style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Order Tracking System" BorderPane.alignment="CENTER" />
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Button onAction="#handleRefresh" style="-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #3498db; -fx-text-fill: white;" text="Refresh Orders" />
+                <Button fx:id="toggleAutoRefreshBtn" onAction="#handleToggleAutoRefresh" style="-fx-font-size: 12px; -fx-padding: 5 10; -fx-background-color: #27ae60; -fx-text-fill: white;" text="Enable Auto-Refresh" />
+                <Label fx:id="autoRefreshLabel" style="-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-padding: 5 0;" text="Auto-refresh: ON" />
+                <Label style="-fx-text-fill: #7f8c8d; -fx-font-style: italic; -fx-padding: 5 0;" text="Watches 'uploads' directory for new JSON and XML files" />
             </HBox>
         </VBox>
     </top>
@@ -29,27 +23,22 @@
             <tabs>
                 <Tab text="Pending Orders">
                     <VBox spacing="10">
-                        <Label text="Orders waiting to be processed"
-                               style="-fx-text-fill: #e67e22; -fx-font-weight: bold;" />
+                        <Label style="-fx-text-fill: #e67e22; -fx-font-weight: bold;" text="Orders waiting to be processed" />
                         <BorderPane>
                             <center>
                                 <TableView fx:id="pendingOrdersTable" prefHeight="300">
                                     <columns>
-                                        <TableColumn text="Type" fx:id="pendingTypeCol" prefWidth="350" />
-                                        <TableColumn text="Source" fx:id="pendingSourceCol" prefWidth="150" />
-                                        <TableColumn text="Order Date" fx:id="pendingDateCol" prefWidth="200" />
-                                        <TableColumn text="Total" fx:id="pendingTotalCol" prefWidth="150" />
+                                        <TableColumn fx:id="pendingTypeCol" prefWidth="350" text="Type" />
+                                        <TableColumn fx:id="pendingSourceCol" prefWidth="150" text="Source" />
+                                        <TableColumn fx:id="pendingDateCol" prefWidth="200" text="Order Date" />
+                                        <TableColumn fx:id="pendingTotalCol" prefWidth="150" text="Total" />
                                     </columns>
                                 </TableView>
                             </center>
                             <bottom>
                                 <HBox spacing="10" style="-fx-padding: 10;">
-                                    <Button text="Start Order" fx:id="startOrderBtn"
-                                            style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #3498db; -fx-text-fill: white;"
-                                            onAction="#handleStartOrder" />
-                                    <Button text="Delete Order" fx:id="deletePendingBtn"
-                                            style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #e74c3c; -fx-text-fill: white;"
-                                            onAction="#handleDeletePendingOrder" />
+                                    <Button fx:id="startOrderBtn" onAction="#handleStartOrder" style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #3498db; -fx-text-fill: white;" text="Start Order" />
+                                    <Button fx:id="deletePendingBtn" onAction="#handleDeletePendingOrder" style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #e74c3c; -fx-text-fill: white;" text="Delete Order" />
                                 </HBox>
                             </bottom>
                         </BorderPane>
@@ -58,30 +47,23 @@
 
                 <Tab text="In-Progress Orders">
                     <VBox spacing="10">
-                        <Label text="Orders currently being processed"
-                               style="-fx-text-fill: #3498db; -fx-font-weight: bold;" />
+                        <Label style="-fx-text-fill: #3498db; -fx-font-weight: bold;" text="Orders currently being processed" />
                         <BorderPane>
                             <center>
                                 <TableView fx:id="inProgressOrdersTable" prefHeight="300">
                                     <columns>
-                                        <TableColumn text="Type" fx:id="inProgressTypeCol" prefWidth="350" />
-                                        <TableColumn text="Source" fx:id="inProgressSourceCol" prefWidth="150" />
-                                        <TableColumn text="Order Date" fx:id="inProgressDateCol" prefWidth="200" />
-                                        <TableColumn text="Total" fx:id="inProgressTotalCol" prefWidth="150" />
+                                        <TableColumn fx:id="inProgressTypeCol" prefWidth="350" text="Type" />
+                                        <TableColumn fx:id="inProgressSourceCol" prefWidth="150" text="Source" />
+                                        <TableColumn fx:id="inProgressDateCol" prefWidth="200" text="Order Date" />
+                                        <TableColumn fx:id="inProgressTotalCol" prefWidth="150" text="Total" />
                                     </columns>
                                 </TableView>
                             </center>
                             <bottom>
                                 <HBox spacing="10" style="-fx-padding: 10;">
-                                    <Button text="Complete Order" fx:id="completeOrderBtn"
-                                            style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #27ae60; -fx-text-fill: white;"
-                                            onAction="#handleCompleteOrder" />
-                                    <Button text="Undo Start" fx:id="undoStartBtn"
-                                            style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #f39c12; -fx-text-fill: white;"
-                                            onAction="#handleUndoStart" />
-                                    <Button text="Delete Order" fx:id="deleteInProgressBtn"
-                                            style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #e74c3c; -fx-text-fill: white;"
-                                            onAction="#handleDeleteInProgressOrder" />
+                                    <Button fx:id="completeOrderBtn" onAction="#handleCompleteOrder" style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #27ae60; -fx-text-fill: white;" text="Complete Order" />
+                                    <Button fx:id="undoStartBtn" onAction="#handleUndoStart" style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #f39c12; -fx-text-fill: white;" text="Undo Start" />
+                                    <Button fx:id="deleteInProgressBtn" onAction="#handleDeleteInProgressOrder" style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #e74c3c; -fx-text-fill: white;" text="Delete Order" />
                                 </HBox>
                             </bottom>
                         </BorderPane>
@@ -90,27 +72,22 @@
 
                 <Tab text="Completed Orders">
                     <VBox spacing="10">
-                        <Label text="Successfully completed orders"
-                               style="-fx-text-fill: #27ae60; -fx-font-weight: bold;" />
+                        <Label style="-fx-text-fill: #27ae60; -fx-font-weight: bold;" text="Successfully completed orders" />
                         <BorderPane>
                             <center>
                                 <TableView fx:id="completedOrdersTable" prefHeight="300">
                                     <columns>
-                                        <TableColumn text="Type" fx:id="completedTypeCol" prefWidth="350" />
-                                        <TableColumn text="Source" fx:id="completedSourceCol" prefWidth="150" />
-                                        <TableColumn text="Order Date" fx:id="completedDateCol" prefWidth="200" />
-                                        <TableColumn text="Total" fx:id="completedTotalCol" prefWidth="150" />
+                                        <TableColumn fx:id="completedTypeCol" prefWidth="350" text="Type" />
+                                        <TableColumn fx:id="completedSourceCol" prefWidth="150" text="Source" />
+                                        <TableColumn fx:id="completedDateCol" prefWidth="200" text="Order Date" />
+                                        <TableColumn fx:id="completedTotalCol" prefWidth="150" text="Total" />
                                     </columns>
                                 </TableView>
                             </center>
                             <bottom>
                                 <HBox spacing="10" style="-fx-padding: 10;">
-                                    <Button text="Undo Complete" fx:id="undoCompleteBtn"
-                                            style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #f39c12; -fx-text-fill: white;"
-                                            onAction="#handleUndoComplete" />
-                                    <Button text="Delete Order" fx:id="deleteCompletedBtn"
-                                            style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #e74c3c; -fx-text-fill: white;"
-                                            onAction="#handleDeleteCompletedOrder" />
+                                    <Button fx:id="undoCompleteBtn" onAction="#handleUndoComplete" style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #f39c12; -fx-text-fill: white;" text="Undo Complete" />
+                                    <Button fx:id="deleteCompletedBtn" onAction="#handleDeleteCompletedOrder" style="-fx-font-size: 14px; -fx-padding: 8 16; -fx-background-color: #e74c3c; -fx-text-fill: white;" text="Delete Order" />
                                 </HBox>
                             </bottom>
                         </BorderPane>
@@ -122,29 +99,31 @@
 
     <right>
         <VBox spacing="15" style="-fx-padding: 16; -fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7;">
-            <Label text="Order Details" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+            <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Order Details" />
 
             <VBox spacing="5">
-                <Label fx:id="orderTypeLabel" text="Type: " style="-fx-font-weight: bold;" />
+                <Label fx:id="orderTypeLabel" style="-fx-font-weight: bold;" text="Type: " />
                 <Label fx:id="orderSourceLabel" text="Source: " />
                 <Label fx:id="orderDateLabel" text="Date: " />
-                <Label fx:id="orderTotalLabel" text="Total: " style="-fx-font-weight: bold; -fx-text-fill: #27ae60;" />
+                <Label fx:id="orderTotalLabel" style="-fx-font-weight: bold; -fx-text-fill: #27ae60;" text="Total: " />
             </VBox>
 
             <Separator />
 
-            <Label text="Items:" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+            <Label style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Items:" />
             <TableView fx:id="itemsTable" prefHeight="250">
                 <columns>
-                    <TableColumn text="Name" fx:id="itemNameCol" prefWidth="120" />
-                    <TableColumn text="Quantity" fx:id="itemQuantityCol" prefWidth="80" />
-                    <TableColumn text="Price" fx:id="itemPriceCol" prefWidth="100" />
+                    <TableColumn fx:id="itemNameCol" prefWidth="120" text="Name" />
+                    <TableColumn fx:id="itemQuantityCol" prefWidth="80" text="Quantity" />
+                    <TableColumn fx:id="itemPriceCol" prefWidth="100" text="Price" />
                 </columns>
             </TableView>
+         <Button fx:id="addItemBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="83.0" text="Add Item" />
+         <Button fx:id="deleteItemBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="83.0" text="Delete Item" />
         </VBox>
     </right>
 
     <padding>
-        <Insets top="10" right="10" bottom="10" left="10" />
+        <Insets bottom="10" left="10" right="10" top="10" />
     </padding>
 </BorderPane>

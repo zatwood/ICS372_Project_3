@@ -7,6 +7,7 @@ import javafx.fxml.FXML
 import javafx.scene.control.*
 import javafx.scene.control.cell.PropertyValueFactory
 import javafx.beans.property.SimpleStringProperty
+import javafx.scene.control.cell.TextFieldTableCell
 import java.io.IOException
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
@@ -60,6 +61,11 @@ class OrderTrackingController {
     // Auto-refresh controls
     @FXML private lateinit var autoRefreshLabel: Label
     @FXML private lateinit var toggleAutoRefreshBtn: Button
+
+    //added and declared button here and in fxml
+    @FXML private lateinit var addItemBtn : Button
+    @FXML private lateinit var deleteItemBtn : Button
+
 
     // Data collections
     private val pendingOrders: ObservableList<Order> = FXCollections.observableArrayList()
@@ -139,10 +145,38 @@ class OrderTrackingController {
     }
 
     private fun setupItemsTable() {
-        itemNameCol.cellValueFactory = PropertyValueFactory("name")
-        itemQuantityCol.cellValueFactory = PropertyValueFactory("quantity")
-        itemPriceCol.cellValueFactory = PropertyValueFactory("price")
+        itemsTable.isEditable = true
 
+        itemNameCol.cellValueFactory = PropertyValueFactory("name")
+        itemNameCol.cellFactory = TextFieldTableCell.forTableColumn()
+        itemNameCol.setOnEditCommit { event ->
+            val item = event.rowValue
+            item.name = event.newValue
+            itemsTable.refresh()
+            updateOrderTotal()
+        }
+
+
+        itemQuantityCol.cellValueFactory = PropertyValueFactory("quantity")
+        itemQuantityCol.cellFactory = TextFieldTableCell.forTableColumn(javafx.util.converter.IntegerStringConverter())
+        itemQuantityCol.setOnEditCommit { event ->
+            val item = event.rowValue
+            item.quantity = event.newValue
+            itemsTable.refresh()
+            updateOrderTotal()
+        }
+
+        itemPriceCol.cellValueFactory = PropertyValueFactory("price")
+        itemPriceCol.cellFactory= TextFieldTableCell.forTableColumn(javafx.util.converter.DoubleStringConverter())
+        itemPriceCol.setOnEditCommit { event ->
+            val item = event.rowValue
+            item.price = event.newValue
+            itemsTable.refresh()
+            updateOrderTotal()
+
+        }
+
+        /*// made new method updateOrderTotal below to handle update on side panel table
         // Format price column
         itemPriceCol.setCellFactory {
             object : TableCell<Item, Double>() {
@@ -156,6 +190,7 @@ class OrderTrackingController {
                 }
             }
         }
+        */
 
         itemsTable.items = currentItems
     }
@@ -269,6 +304,40 @@ class OrderTrackingController {
             Alert.AlertType.INFORMATION, "Orders Loaded",
             String.format("Successfully loaded %d new orders. Auto-refresh is enabled.", newOrdersCount)
         )
+    }
+
+    /**
+     * handles for deleting and adding items
+     */
+
+    @FXML
+    private fun handleAddItem() {
+        val newItem = Item(name = "New Item", quantity = 1, price = 0.0)
+        currentItems.add(newItem)
+        itemsTable.selectionModel.select(newItem)
+        updateOrderTotal()
+    }
+
+    @FXML
+    private fun handleDeleteItem() {
+        val selectedItem = itemsTable.selectionModel.selectedItem
+        if (selectedItem != null) {
+            currentItems.remove(selectedItem)
+            updateOrderTotal()
+        }
+    }
+
+    //recalculating thr order total after adding or deleting items
+    private fun updateOrderTotal() {
+        val selectedOrder = pendingOrdersTable.selectionModel.selectedItem ?:
+            inProgressOrdersTable.selectionModel.selectedItem ?:
+            completedOrdersTable.selectionModel.selectedItem
+
+        if (selectedOrder != null) {
+            selectedOrder.items = currentItems.toList()
+            orderTotalLabel.text = "Total: ${formatTotal(selectedOrder)}"
+            saveOrderState()
+        }
     }
 
     /**
