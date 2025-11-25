@@ -104,22 +104,22 @@ class OrderTrackingController {
     }
 
     private fun setupOrderTables() {
-        // Configure pending orders table
+        // Configure pending orders table with multiple selection
         setupOrderTable(
             pendingOrdersTable, pendingTypeCol, pendingSourceCol,
-            pendingDateCol, pendingTotalCol, pendingOrders
+            pendingDateCol, pendingTotalCol, pendingOrders, true
         )
 
-        // Configure in-progress orders table
+        // Configure in-progress orders table with multiple selection
         setupOrderTable(
             inProgressOrdersTable, inProgressTypeCol, inProgressSourceCol,
-            inProgressDateCol, inProgressTotalCol, inProgressOrders
+            inProgressDateCol, inProgressTotalCol, inProgressOrders, true
         )
 
-        // Configure completed orders table
+        // Configure completed orders table with multiple selection
         setupOrderTable(
             completedOrdersTable, completedTypeCol, completedSourceCol,
-            completedDateCol, completedTotalCol, completedOrders
+            completedDateCol, completedTotalCol, completedOrders, true
         )
     }
 
@@ -132,8 +132,59 @@ class OrderTrackingController {
         sourceCol: TableColumn<Order, String>,
         dateCol: TableColumn<Order, String>,
         totalCol: TableColumn<Order, String>,
-        orders: ObservableList<Order>
+        orders: ObservableList<Order>,
+        multipleSelection: Boolean = false
     ) {
+        // Enable multiple selection mode
+        if (multipleSelection) {
+            table.selectionModel.selectionMode = SelectionMode.MULTIPLE
+        }
+
+        // Add checkbox column for batch selection
+        val checkBoxCol = TableColumn<Order, Boolean>("")
+        checkBoxCol.minWidth = 40.0
+        checkBoxCol.maxWidth = 40.0
+        checkBoxCol.isResizable = false
+        checkBoxCol.isSortable = false
+
+        checkBoxCol.setCellFactory {
+            object : TableCell<Order, Boolean>() {
+                private val checkBox = CheckBox()
+
+                init {
+                    checkBox.setOnAction {
+                        val currentIndex = index
+                        if (currentIndex >= 0 && currentIndex < table.items.size) {
+                            if (checkBox.isSelected) {
+                                table.selectionModel.select(currentIndex)
+                            } else {
+                                table.selectionModel.clearSelection(currentIndex)
+                            }
+                        }
+                    }
+                }
+
+                override fun updateItem(item: Boolean?, empty: Boolean) {
+                    super.updateItem(item, empty)
+                    if (empty || index < 0 || index >= table.items.size) {
+                        graphic = null
+                        checkBox.isSelected = false
+                    } else {
+                        checkBox.isSelected = table.selectionModel.isSelected(index)
+                        graphic = checkBox
+                    }
+                }
+            }
+        }
+
+        // Listen to selection changes to update checkboxes
+        table.selectionModel.selectedIndices.addListener { _: javafx.collections.ListChangeListener.Change<out Int> ->
+            table.refresh()
+        }
+
+        // Add the checkbox column as the first column
+        table.columns.add(0, checkBoxCol)
+
         typeCol.setCellValueFactory { data -> SimpleStringProperty(data.value.getTypeOrDefault()) }
         typeCol.setCellFactory { createTypeCell() }
         sourceCol.setCellValueFactory { data ->
@@ -143,7 +194,6 @@ class OrderTrackingController {
         totalCol.setCellValueFactory { data -> SimpleStringProperty(formatTotal(data.value)) }
         table.items = orders
     }
-
     private fun setupItemsTable() {
         itemsTable.isEditable = true
 
@@ -211,6 +261,167 @@ class OrderTrackingController {
             updateButtonStates()
         }
     }
+    @FXML
+    private fun handleBatchStart() {
+        val selectedOrders = pendingOrdersTable.selectionModel.selectedItems.toList()
+
+        if (selectedOrders.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select one or more orders to start")
+            return
+        }
+
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Start"
+        confirmAlert.headerText = "Start ${selectedOrders.size} Orders"
+        confirmAlert.contentText = "Are you sure you want to start ${selectedOrders.size} selected order(s)?"
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == ButtonType.OK) {
+                var movedCount = 0
+                for (order in selectedOrders) {
+                    order.status = Order.OrderStatus.IN_PROGRESS
+                    pendingOrders.remove(order)
+                    inProgressOrders.add(order)
+                    movedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                showAlert(
+                    Alert.AlertType.INFORMATION,
+                    "Batch Start Complete",
+                    "$movedCount order(s) have been moved to In-Progress"
+                )
+            }
+        }
+    }
+
+    // BATCH OPERATIONS - COMPLETE MULTIPLE ORDERS
+    @FXML
+    private fun handleBatchComplete() {
+        val selectedOrders = inProgressOrdersTable.selectionModel.selectedItems.toList()
+
+        if (selectedOrders.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select one or more orders to complete")
+            return
+        }
+
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Complete"
+        confirmAlert.headerText = "Complete ${selectedOrders.size} Orders"
+        confirmAlert.contentText = "Are you sure you want to complete ${selectedOrders.size} selected order(s)?"
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == ButtonType.OK) {
+                var movedCount = 0
+                for (order in selectedOrders) {
+                    order.status = Order.OrderStatus.COMPLETED
+                    inProgressOrders.remove(order)
+                    completedOrders.add(order)
+                    movedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                showAlert(
+                    Alert.AlertType.INFORMATION,
+                    "Batch Complete",
+                    "$movedCount order(s) have been marked as completed"
+                )
+            }
+        }
+    }
+
+    // BATCH OPERATIONS - DELETE MULTIPLE PENDING ORDERS
+    @FXML
+    private fun handleBatchDeletePending() {
+        handleBatchDelete(
+            pendingOrdersTable.selectionModel.selectedItems.toList(),
+            pendingOrders,
+            "Pending"
+        )
+    }
+
+    // BATCH OPERATIONS - DELETE MULTIPLE IN-PROGRESS ORDERS
+    @FXML
+    private fun handleBatchDeleteInProgress() {
+        handleBatchDelete(
+            inProgressOrdersTable.selectionModel.selectedItems.toList(),
+            inProgressOrders,
+            "In-Progress"
+        )
+    }
+
+    // BATCH OPERATIONS - DELETE MULTIPLE COMPLETED ORDERS
+    @FXML
+    private fun handleBatchDeleteCompleted() {
+        handleBatchDelete(
+            completedOrdersTable.selectionModel.selectedItems.toList(),
+            completedOrders,
+            "Completed"
+        )
+    }
+
+    private fun handleBatchDelete(
+        selectedOrders: List<Order>,
+        orderList: ObservableList<Order>,
+        statusText: String
+    ) {
+        if (selectedOrders.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select one or more orders to delete")
+            return
+        }
+
+        val totalAmount = selectedOrders.sumOf { it.calculateTotal() }
+
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Delete"
+        confirmAlert.headerText = "Delete ${selectedOrders.size} $statusText Orders"
+        confirmAlert.contentText = """
+            Are you sure you want to delete ${selectedOrders.size} selected order(s)?
+            
+            Total Value: $${String.format("%.2f", totalAmount)}
+            
+            All orders will be saved to canceledOrders.json and source files will be removed if found.
+        """.trimIndent()
+
+        val yesButton = ButtonType("Yes, Delete All", ButtonBar.ButtonData.YES)
+        val noButton = ButtonType("Cancel", ButtonBar.ButtonData.NO)
+        confirmAlert.buttonTypes.setAll(yesButton, noButton)
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == yesButton) {
+                var deletedCount = 0
+                var filesRemovedCount = 0
+
+                for (order in selectedOrders) {
+                    val fileRemoved = deleteOrderFile(order)
+                    if (fileRemoved) filesRemovedCount++
+
+                    orderList.remove(order)
+                    orderToFileMap.remove(order)
+                    deletedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                val message = """
+                    $deletedCount $statusText order(s) deleted
+                    $filesRemovedCount source file(s) removed
+                    All orders saved to canceledOrders.json
+                """.trimIndent()
+
+                showAlert(Alert.AlertType.INFORMATION, "Batch Delete Complete", message)
+            }
+        }
+    }
+
 
     private fun startFileWatcher() {
         // Register as listener for order updates
@@ -327,7 +538,7 @@ class OrderTrackingController {
         }
     }
 
-    //recalculating thr order total after adding or deleting items
+    //recalculating the order total after adding or deleting items
     private fun updateOrderTotal() {
         val selectedOrder = pendingOrdersTable.selectionModel.selectedItem ?:
             inProgressOrdersTable.selectionModel.selectedItem ?:
@@ -352,8 +563,15 @@ class OrderTrackingController {
 
     @FXML
     private fun handleStartOrder() {
-        val selected = pendingOrdersTable.selectionModel.selectedItem
-        if (selected != null) {
+        val selectedOrders = pendingOrdersTable.selectionModel.selectedItems.toList()
+
+        if (selectedOrders.isEmpty()) {
+            return
+        }
+
+        // Single selection
+        if (selectedOrders.size == 1) {
+            val selected = selectedOrders[0]
             selected.status = Order.OrderStatus.IN_PROGRESS
             pendingOrders.remove(selected)
             inProgressOrders.add(selected)
@@ -364,13 +582,49 @@ class OrderTrackingController {
                 Alert.AlertType.INFORMATION, "Order Started",
                 "Order has been moved to In-Progress"
             )
+            return
+        }
+
+        // Batch selection with confirmation
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Start"
+        confirmAlert.headerText = "Start ${selectedOrders.size} Orders"
+        confirmAlert.contentText = "Are you sure you want to start ${selectedOrders.size} selected order(s)?"
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == ButtonType.OK) {
+                var movedCount = 0
+                for (order in selectedOrders) {
+                    order.status = Order.OrderStatus.IN_PROGRESS
+                    pendingOrders.remove(order)
+                    inProgressOrders.add(order)
+                    movedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                showAlert(
+                    Alert.AlertType.INFORMATION,
+                    "Batch Start Complete",
+                    "$movedCount order(s) have been moved to In-Progress"
+                )
+            }
         }
     }
 
     @FXML
     private fun handleCompleteOrder() {
-        val selected = inProgressOrdersTable.selectionModel.selectedItem
-        if (selected != null) {
+        val selectedOrders = inProgressOrdersTable.selectionModel.selectedItems.toList()
+
+        if (selectedOrders.isEmpty()) {
+            return
+        }
+
+        // Single selection - no confirmation
+        if (selectedOrders.size == 1) {
+            val selected = selectedOrders[0]
             selected.status = Order.OrderStatus.COMPLETED
             inProgressOrders.remove(selected)
             completedOrders.add(selected)
@@ -381,13 +635,48 @@ class OrderTrackingController {
                 Alert.AlertType.INFORMATION, "Order Completed",
                 "Order has been marked as completed"
             )
+            return
+        }
+
+        // Batch selection - with confirmation
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Complete"
+        confirmAlert.headerText = "Complete ${selectedOrders.size} Orders"
+        confirmAlert.contentText = "Are you sure you want to complete ${selectedOrders.size} selected order(s)?"
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == ButtonType.OK) {
+                var movedCount = 0
+                for (order in selectedOrders) {
+                    order.status = Order.OrderStatus.COMPLETED
+                    inProgressOrders.remove(order)
+                    completedOrders.add(order)
+                    movedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                showAlert(
+                    Alert.AlertType.INFORMATION,
+                    "Batch Complete",
+                    "$movedCount order(s) have been marked as completed"
+                )
+            }
         }
     }
-
     @FXML
     private fun handleUndoStart() {
-        val selected = inProgressOrdersTable.selectionModel.selectedItem
-        if (selected != null) {
+        val selectedOrders = inProgressOrdersTable.selectionModel.selectedItems.toList()
+
+        if (selectedOrders.isEmpty()) {
+            return
+        }
+
+        // Handle single-selection differently
+        if (selectedOrders.size == 1) {
+            val selected = selectedOrders[0]
             selected.status = Order.OrderStatus.PENDING
             inProgressOrders.remove(selected)
             pendingOrders.add(selected)
@@ -398,13 +687,49 @@ class OrderTrackingController {
                 Alert.AlertType.INFORMATION, "Start Order Undone",
                 "Order has been moved back to pending"
             )
+            return
+        }
+
+        // Handle batch selection with confirmation
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Undo Start"
+        confirmAlert.headerText = "Undo Start for ${selectedOrders.size} Orders"
+        confirmAlert.contentText = "Are you sure you want to move ${selectedOrders.size} selected order(s) back to pending?"
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == ButtonType.OK) {
+                var movedCount = 0
+                for (order in selectedOrders) {
+                    order.status = Order.OrderStatus.PENDING
+                    inProgressOrders.remove(order)
+                    pendingOrders.add(order)
+                    movedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                showAlert(
+                    Alert.AlertType.INFORMATION,
+                    "Batch Undo Start Complete",
+                    "$movedCount order(s) have been moved back to pending"
+                )
+            }
         }
     }
 
     @FXML
     private fun handleUndoComplete() {
-        val selected = completedOrdersTable.selectionModel.selectedItem
-        if (selected != null) {
+        val selectedOrders = completedOrdersTable.selectionModel.selectedItems.toList()
+
+        if (selectedOrders.isEmpty()) {
+            return
+        }
+
+        // Handle single selection differently
+        if (selectedOrders.size == 1) {
+            val selected = selectedOrders[0]
             selected.status = Order.OrderStatus.IN_PROGRESS
             completedOrders.remove(selected)
             inProgressOrders.add(selected)
@@ -415,50 +740,88 @@ class OrderTrackingController {
                 Alert.AlertType.INFORMATION, "Complete Order Undone",
                 "Order has been moved back to in-progress"
             )
+            return
+        }
+
+        // Handle batch selection with confirmation
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Undo Complete"
+        confirmAlert.headerText = "Undo Complete for ${selectedOrders.size} Orders"
+        confirmAlert.contentText = "Are you sure you want to move ${selectedOrders.size} selected order(s) back to in-progress?"
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == ButtonType.OK) {
+                var movedCount = 0
+                for (order in selectedOrders) {
+                    order.status = Order.OrderStatus.IN_PROGRESS
+                    completedOrders.remove(order)
+                    inProgressOrders.add(order)
+                    movedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                showAlert(
+                    Alert.AlertType.INFORMATION,
+                    "Batch Undo Complete",
+                    "$movedCount order(s) have been moved back to in-progress"
+                )
+            }
         }
     }
 
     @FXML
     private fun handleDeletePendingOrder() {
         handleDeleteOrder(
-            pendingOrdersTable.selectionModel.selectedItem,
-            pendingOrders, "Pending"
+            pendingOrdersTable.selectionModel.selectedItems.toList(),
+            pendingOrders,
+            "Pending"
         )
     }
 
     @FXML
     private fun handleDeleteInProgressOrder() {
         handleDeleteOrder(
-            inProgressOrdersTable.selectionModel.selectedItem,
-            inProgressOrders, "In-Progress"
+            inProgressOrdersTable.selectionModel.selectedItems.toList(),
+            inProgressOrders,
+            "In-Progress"
         )
     }
 
     @FXML
     private fun handleDeleteCompletedOrder() {
         handleDeleteOrder(
-            completedOrdersTable.selectionModel.selectedItem,
-            completedOrders, "Completed"
+            completedOrdersTable.selectionModel.selectedItems.toList(),
+            completedOrders,
+            "Completed"
         )
     }
 
     /**
-     * Handler for deleting orders from any status list
+     * Handler for deleting orders from any status list (handles both single and batch)
      */
-    private fun handleDeleteOrder(selected: Order?, orderList: ObservableList<Order>, statusText: String) {
-        if (selected != null) {
+    private fun handleDeleteOrder(selectedOrders: List<Order>, orderList: ObservableList<Order>, statusText: String) {
+        if (selectedOrders.isEmpty()) {
+            return
+        }
+
+        // Single order deletion
+        if (selectedOrders.size == 1) {
+            val selected = selectedOrders[0]
             val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
             confirmAlert.title = "Confirm Delete"
             confirmAlert.headerText = "Delete $statusText Order"
             confirmAlert.contentText = """
-                Are you sure you want to delete this order?
+            Are you sure you want to delete this order?
 
-                Type: ${selected.getTypeOrDefault()}
-                Source: ${selected.source ?: "Unknown"}
-                Total: $${String.format("%.2f", selected.calculateTotal())}
+            Type: ${selected.getTypeOrDefault()}
+            Source: ${selected.source ?: "Unknown"}
+            Total: ${String.format("%.2f", selected.calculateTotal())}
 
-                The order will be saved to canceledOrders.json and the source file will be removed if found.
-            """.trimIndent()
+            The order will be saved to canceledOrders.json and the source file will be removed if found.
+        """.trimIndent()
 
             val yesButton = ButtonType("Yes", ButtonBar.ButtonData.YES)
             val noButton = ButtonType("No", ButtonBar.ButtonData.NO)
@@ -466,13 +829,8 @@ class OrderTrackingController {
 
             confirmAlert.showAndWait().ifPresent { response ->
                 if (response == yesButton) {
-                    // Save to canceled orders and try to delete the source file
                     val orderProcessed = deleteOrderFile(selected)
-
-                    // Remove order from list
                     orderList.remove(selected)
-
-                    // Remove from file tracking map
                     orderToFileMap.remove(selected)
 
                     clearOrderDetails()
@@ -489,9 +847,55 @@ class OrderTrackingController {
                     showAlert(Alert.AlertType.INFORMATION, "Order Deleted", message)
                 }
             }
+            return
+        }
+
+        // Batch deletion
+        val totalAmount = selectedOrders.sumOf { it.calculateTotal() }
+        // Confirmation dialog
+        val confirmAlert = Alert(Alert.AlertType.CONFIRMATION)
+        confirmAlert.title = "Confirm Batch Delete"
+        confirmAlert.headerText = "Delete ${selectedOrders.size} $statusText Orders"
+        confirmAlert.contentText = """
+        Are you sure you want to delete ${selectedOrders.size} selected order(s)?
+        
+        Total Value: ${String.format("%.2f", totalAmount)}
+        
+        All orders will be saved to canceledOrders.json and source files will be removed if found.
+    """.trimIndent()
+
+        val yesButton = ButtonType("Yes, Delete All", ButtonBar.ButtonData.YES)
+        val noButton = ButtonType("Cancel", ButtonBar.ButtonData.NO)
+        confirmAlert.buttonTypes.setAll(yesButton, noButton)
+
+        confirmAlert.showAndWait().ifPresent { response ->
+            if (response == yesButton) {
+                var deletedCount = 0
+                var filesRemovedCount = 0
+
+                for (order in selectedOrders) {
+                    val fileRemoved = deleteOrderFile(order)
+                    if (fileRemoved) filesRemovedCount++
+
+                    orderList.remove(order)
+                    orderToFileMap.remove(order)
+                    deletedCount++
+                }
+
+                clearOrderDetails()
+                updateButtonStates()
+                saveOrderState()
+
+                val message = """
+                $deletedCount $statusText order(s) deleted
+                $filesRemovedCount source file(s) removed
+                All orders saved to canceledOrders.json
+            """.trimIndent()
+
+                showAlert(Alert.AlertType.INFORMATION, "Batch Delete Complete", message)
+            }
         }
     }
-
     /**
      * Save the order to canceled orders and optionally delete the source file
      */
@@ -667,11 +1071,14 @@ class OrderTrackingController {
         startOrderBtn.isDisable = pendingSelected == null
         deletePendingBtn.isDisable = pendingSelected == null
 
+
         // In-progress orders buttons
         val inProgressSelected = inProgressOrdersTable.selectionModel.selectedItem
         completeOrderBtn.isDisable = inProgressSelected == null
         undoStartBtn.isDisable = inProgressSelected == null
         deleteInProgressBtn.isDisable = inProgressSelected == null
+
+
 
         // Completed orders buttons
         val completedSelected = completedOrdersTable.selectionModel.selectedItem
