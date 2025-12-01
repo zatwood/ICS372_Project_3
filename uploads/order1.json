@@ -1,0 +1,21 @@
+{
+  "order": {
+    "type": "pickup",
+    "order_date": 1515354694451,
+    "items": [
+      {
+        "name": "Hot Dog",
+        "quantity": 2,
+        "price": 8.99
+      },
+      {
+        "name": "Fries",
+        "quantity": 2,
+        "price": 3.99
+      }
+    ],
+    "source": "Grubhub",
+    "status": "PENDING"
+  }
+}
+

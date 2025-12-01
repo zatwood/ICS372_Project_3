@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<orders>
+  <order>
+    <type>delivery</type>
+    <order_date>1705797900000</order_date>
+    <items>
+      <item>
+        <name>Cheeseburger</name>
+        <quantity>2</quantity>
+        <price>12.99</price>
+      </item>
+      <item>
+        <name>Fries</name>
+        <quantity>1</quantity>
+        <price>4.99</price>
+      </item>
+      <item>
+        <name>mS</name>
+        <quantity>2</quantity>
+        <price>5.99</price>
+      </item>
+    </items>
+    <source>Restaurant A</source>
+    <status>PENDING</status>
+  </order>
+</orders>
+
