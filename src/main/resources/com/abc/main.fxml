@@ -118,8 +118,8 @@
                     <TableColumn fx:id="itemPriceCol" prefWidth="100" text="Price" />
                 </columns>
             </TableView>
-         <Button fx:id="addItemBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="83.0" text="Add Item" />
-         <Button fx:id="deleteItemBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="83.0" text="Delete Item" />
+         <Button fx:id="addItemBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="83.0" onAction="#handleAddItem" text="Add Item" />
+         <Button fx:id="deleteItemBtn" mnemonicParsing="false" prefHeight="32.0" prefWidth="83.0" onAction="#handleDeleteItem" text="Delete Item" />
         </VBox>
     </right>
 
