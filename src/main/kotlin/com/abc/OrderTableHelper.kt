@@ -65,13 +65,24 @@ object OrderTableHelper {
         // Add the checkbox column as the first column
         table.columns.add(0, checkBoxCol)
 
+        // Setup column cell value factories - now using OrderFormatters
         typeCol.setCellValueFactory { data -> SimpleStringProperty(data.value.getTypeOrDefault()) }
         typeCol.setCellFactory { createTypeCell() }
+
         sourceCol.setCellValueFactory { data ->
             SimpleStringProperty(data.value.source ?: "Unknown")
         }
-        dateCol.setCellValueFactory { data -> SimpleStringProperty(formatDate(data.value.order_date)) }
-        totalCol.setCellValueFactory { data -> SimpleStringProperty(formatTotal(data.value)) }
+
+        // Use OrderFormatters for consistent date formatting
+        dateCol.setCellValueFactory { data ->
+            SimpleStringProperty(OrderFormatters.formatDate(data.value.order_date))
+        }
+
+        // Use OrderFormatters for consistent currency formatting
+        totalCol.setCellValueFactory { data ->
+            SimpleStringProperty(OrderFormatters.formatTotal(data.value))
+        }
+
         table.items = orders
     }
 
@@ -135,7 +146,7 @@ object OrderTableHelper {
                             style = "-fx-text-fill: blue; -fx-font-weight: bold;"
                         }
                         "to-go", "togo" -> {
-                            text = "🍱 To-Go"
+                            text = "🥡 To-Go"
                             style = "-fx-text-fill: purple; -fx-font-weight: bold;"
                         }
                         "delivery" -> {
@@ -150,22 +161,5 @@ object OrderTableHelper {
                 }
             }
         }
-    }
-
-    // Small helpers required by the cell setup
-    private fun formatDate(timestamp: Long): String {
-        return try {
-            val instant = java.time.Instant.ofEpochMilli(timestamp)
-            val dateTime = java.time.LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())
-            dateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-        } catch (e: Exception) {
-            System.err.println("Error formatting date: ${e.message}")
-            "Invalid Date"
-        }
-    }
-
-    private fun formatTotal(order: Order?): String {
-        if (order == null) return "$0.00"
-        return String.format("$%.2f", order.calculateTotal())
     }
 }

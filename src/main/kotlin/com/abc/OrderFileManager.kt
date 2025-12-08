@@ -19,8 +19,6 @@ object OrderFileManager {
         for (order in orders) {
             val alreadyExists = pending.contains(order) || inProgress.contains(order) || completed.contains(order)
             if (!alreadyExists) {
-                order.status = Order.OrderStatus.PENDING
-                pending.add(order)
                 newOrders.add(order)
             }
         }
@@ -66,38 +64,77 @@ object OrderFileManager {
         }
     }
 
+    //Find the source file for a specific order.
     fun findOrderFile(order: Order): String? {
         try {
             val uploadsDir = java.nio.file.Paths.get("uploads")
-            if (java.nio.file.Files.exists(uploadsDir)) {
-                java.nio.file.Files.newDirectoryStream(uploadsDir, "*.{json,xml}").use { stream ->
-                    for (filePath in stream) {
+            if (!java.nio.file.Files.exists(uploadsDir)) {
+                return null
+            }
+
+            java.nio.file.Files.newDirectoryStream(uploadsDir, "*.{json,xml}").use { stream ->
+                val files = stream.toList()
+
+                // Strategy 1: Match by order source in filename
+                if (order.source != null) {
+                    val normalizedSource = order.source!!.lowercase().replace(" ", "").replace("_", "")
+
+                    for (filePath in files) {
                         val fileName = filePath.fileName.toString().lowercase()
+                        val normalizedFileName = fileName.replace(" ", "").replace("_", "")
 
-                        if (order.source != null &&
-                            fileName.contains(order.source!!.lowercase().replace(" ", ""))
-                        ) {
-                            return filePath.toString()
-                        }
-
-                        if (fileName.contains("order") || fileName.contains("restaurant")) {
+                        // Check if the filename contains the source
+                        if (normalizedFileName.contains(normalizedSource)) {
+                            println("Found file for order ${order.source}: $filePath")
                             return filePath.toString()
                         }
                     }
                 }
+
+
+                // Match by order date (timestamp)
+                // This is a fallback if source doesn't work
+                for (filePath in files) {
+                    val fileName = filePath.fileName.toString()
+                    // Check if filename contains the order timestamp
+                    if (fileName.contains(order.order_date.toString())) {
+                        println("Found file for order by timestamp: $filePath")
+                        return filePath.toString()
+                    }
+                }
+
+                // NO FALLBACK - if we can't find a specific match, return null
+                println("⚠️ Could not find specific file for order: ${order.source ?: "unknown"} (date: ${order.order_date})")
+                return null
             }
         } catch (e: Exception) {
             System.err.println("Error finding order file: ${e.message}")
+            return null
         }
-        return null
     }
 
+    //Delete the source file for an order.
     fun deleteOrderFile(order: Order, orderToFileMap: MutableMap<Order, String>): Boolean {
-        val savedToCanceled = OrderPersistence.saveCanceledOrder(order)
+        println("🗑️ Attempting to delete file for order: ${order.source ?: "unknown"}")
 
+        // Always save to canceled orders first
+        val savedToCanceled = OrderPersistence.saveCanceledOrder(order)
+        if (savedToCanceled) {
+            println("   ✅ Order saved to canceledOrders.json")
+        }
+
+        // Try to get file path from tracking map first
         var filePath = orderToFileMap[order]
-        if (filePath == null) {
+        if (filePath != null) {
+            println("   📍 Found tracked file path: $filePath")
+        } else {
+            println("   🔍 File not tracked, searching for it...")
             filePath = findOrderFile(order)
+            if (filePath != null) {
+                println("   📍 Found file: $filePath")
+            } else {
+                println("   ⚠️ Could not find source file for order")
+            }
         }
 
         var fileDeleted = false
@@ -106,13 +143,14 @@ object OrderFileManager {
                 val path = java.nio.file.Paths.get(filePath)
                 if (java.nio.file.Files.exists(path)) {
                     java.nio.file.Files.delete(path)
-                    println("Deleted source file: $path")
+                    println("   ✅ Deleted source file: $path")
                     fileDeleted = true
                 } else {
-                    println("Source file not found for deletion: $path")
+                    println("   ⚠️ Source file no longer exists: $path")
                 }
             } catch (e: java.io.IOException) {
-                System.err.println("Error deleting source file $filePath: ${e.message}")
+                System.err.println("   ❌ Error deleting source file $filePath: ${e.message}")
+                e.printStackTrace()
             }
         }
 
