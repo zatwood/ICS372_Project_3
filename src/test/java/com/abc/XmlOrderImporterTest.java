@@ -65,7 +65,7 @@ class XmlOrderImporterTest {
         Files.writeString(xmlFile, validXmlContent);
 
         // Act
-        XmlOrderImporter.ImportResult result = XmlOrderImporter.INSTANCE.importFromXml(xmlFile.toString());
+        OrderIn.ImportResult result = OrderIn.INSTANCE.importFromXml(xmlFile.toString());
 
         // Assert
         assertNotNull(result, "Import result should not be null");
@@ -96,7 +96,7 @@ class XmlOrderImporterTest {
         Files.writeString(xmlFile, invalidXmlContent);
 
         // Act
-        XmlOrderImporter.ImportResult result = XmlOrderImporter.INSTANCE.importFromXml(xmlFile.toString());
+        OrderIn.ImportResult result = OrderIn.INSTANCE.importFromXml(xmlFile.toString());
 
         // Assert
         assertNotNull(result, "Import result should not be null");
@@ -121,7 +121,7 @@ class XmlOrderImporterTest {
     @Test
     void testImportFromXmlWithNonExistentFile() {
         // Act
-        XmlOrderImporter.ImportResult result = XmlOrderImporter.INSTANCE.importFromXml("non_existent_file.xml");
+        OrderIn.ImportResult result = OrderIn.INSTANCE.importFromXml("non_existent_file.xml");
 
         // Assert
         assertNotNull(result, "Import result should not be null");
@@ -134,7 +134,7 @@ class XmlOrderImporterTest {
     @Test
     void testImportFromDirectoryWithNonExistentDirectory() {
         // Act
-        List<XmlOrderImporter.ImportResult> results = XmlOrderImporter.INSTANCE.importFromDirectory("non_existent_directory");
+        List<OrderIn.ImportResult> results = OrderIn.INSTANCE.importFromDirectory("non_existent_directory");
 
         // Assert
         assertEquals(0, results.size(), "Should return empty list for non-existent directory");
