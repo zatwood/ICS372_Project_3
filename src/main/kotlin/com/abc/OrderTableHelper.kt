@@ -5,6 +5,7 @@ import javafx.scene.control.*
 import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.control.cell.TextFieldTableCell
 import javafx.beans.property.SimpleStringProperty
+import javafx.scene.text.Font
 
 object OrderTableHelper {
 
@@ -134,28 +135,37 @@ object OrderTableHelper {
 
     private fun createTypeCell(): TableCell<Order, String> {
         return object : TableCell<Order, String>() {
+            // Select the appropriate emoji font based on the operating system
+            private val emojiFontFamily = when {
+                System.getProperty("os.name").contains("Windows") -> "Segoe UI Emoji"
+                System.getProperty("os.name").contains("Mac") -> "Apple Color Emoji"
+                else -> "Noto Color Emoji"
+            }
+
             override fun updateItem(type: String?, empty: Boolean) {
                 super.updateItem(type, empty)
                 if (empty || type == null) {
                     text = null
                     style = ""
                 } else {
+                    //Drop shadow effect to create a bold appearance
                     when (type.lowercase()) {
                         "pick-up", "pickup" -> {
                             text = "📦 Pick-Up"
-                            style = "-fx-text-fill: blue; -fx-font-weight: bold;"
+                            style = "-fx-font-family: '$emojiFontFamily', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'; -fx-text-fill: blue; -fx-font-weight: 900; -fx-font-size: 14px; -fx-effect: dropshadow(gaussian, blue, 0, 0.8, 0.5, 0);"
                         }
                         "to-go", "togo" -> {
                             text = "🥡 To-Go"
-                            style = "-fx-text-fill: purple; -fx-font-weight: bold;"
+                            style = "-fx-font-family: '$emojiFontFamily', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'; -fx-text-fill: purple; -fx-font-weight: 900; -fx-font-size: 14px; -fx-effect: dropshadow(gaussian, purple, 0, 0.8, 0.5, 0);"
                         }
                         "delivery" -> {
                             text = "🚚 Delivery"
-                            style = "-fx-text-fill: orange; -fx-font-weight: bold;"
+                            style = "-fx-font-family: '$emojiFontFamily', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'; -fx-text-fill: orange; -fx-font-weight: 900; -fx-font-size: 14px; -fx-effect: dropshadow(gaussian, orange, 0, 0.8, 0.5, 0);"
                         }
                         else -> {
+                            // Fallback for any other order type
                             text = type
-                            style = "-fx-text-fill: orange; -fx-font-weight: bold;"
+                            style = "-fx-font-family: '$emojiFontFamily', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'; -fx-text-fill: orange; -fx-font-weight: 900; -fx-font-size: 14px; -fx-effect: dropshadow(gaussian, orange, 0, 0.8, 0.5, 0);"
                         }
                     }
                 }
