@@ -1,0 +1,94 @@
+@startuml
+title ICS372_Project_3 - Class Diagram (com.abc)
+
+package com.abc {
+  class Order {
+    +id: String
+    +source: String
+    +items: List\<Item\>
+    +status: OrderStatus
+  }
+
+  enum OrderStatus
+
+  class Item {
+    +name: String
+    +quantity: Int
+  }
+
+  class OrderManager {
+    -pending: List\<Order\>
+    -inProgress: List\<Order\>
+    -completed: List\<Order\>
+    +addOrder(o: Order)
+    +startOrder(o: Order)
+    +completeOrder(o: Order)
+  }
+
+  class OrderPersistence {
+    +saveOrderState(...)
+    +loadOrderState(): OrderState
+    +saveCanceledOrder(o: Order)
+    +loadCanceledOrders(): List\<Order\>
+  }
+  class OrderState {
+    +pendingOrders: List\<Order\>
+    +inProgressOrders: List\<Order\>
+    +completedOrders: List\<Order\>
+  }
+
+  class OrderFileManager {
+    +startFileWatcher()
+    +importOrder(file: File)
+  }
+
+  interface OrderImporter
+
+  class JsonOrderImporter
+  class XmlOrderImporterAdapter
+  class OrderUpdateListener
+  class ImportResult
+
+  class OrderFormatters
+  class OrderDialogHelper
+  class OrderTableHelper
+
+  class OrderTrackingController {
+    +initializeUI()
+  }
+  class OrderTrackingApp
+  class LauncherKt
+
+  ' Represents the FXML resource located in resources/com/abc/main.f
+  artifact main_fxml <<file>> {
+    path = "/com/abc/main.fxml"
+  }
+}
+
+'Associations / compositions
+Order "1" *-- "0..*" Item : contains
+OrderManager "1" o-- "0..*" Order : manages
+OrderPersistence "1" o-- OrderState
+OrderPersistence ..> Order : persists
+
+' Dependencies / uses
+OrderManager --> OrderPersistence : uses
+OrderFileManager --> OrderImporter : uses
+OrderFileManager --> OrderIn : uses
+OrderFileManager ..> Order : imports/creates
+OrderIn ..> Order : constructs
+JsonOrderImporter --|> OrderImporter
+XmlOrderImporterAdapter --|> OrderImporter
+OrderUpdateListener ..> OrderManager : notifies
+
+OrderTrackingController --> OrderManager
+OrderTrackingController --> OrderDialogHelper
+OrderTrackingController --> OrderTableHelper
+OrderTrackingApp --> OrderTrackingController
+LauncherKt --> OrderTrackingApp
+
+' Link controller/app to the FXML resource
+OrderTrackingController --> main_fxml : loads
+OrderTrackingApp --> main_fxml : uses
+
+@enduml

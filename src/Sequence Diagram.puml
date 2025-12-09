@@ -1,0 +1,53 @@
+@startuml
+title ICS372_Project_3 - Order Tracking System (Sequence Diagram)
+
+participant LauncherKt as "LauncherKt"
+participant OrderTrackingApp as "OrderTrackingApp"
+participant OrderTrackingController as "OrderTrackingController"
+participant OrderFileManager as "OrderFileManager"
+participant FileWatcher as "FileWatcher"
+participant OrderIn as "OrderIn"
+participant main_fxml as "main.fxml"
+participant JsonOrderImporter as "JsonOrderImporter"
+participant XmlOrderImporterAdapter as "XmlOrderImporterAdapter"
+participant OrderManager as "OrderManager"
+participant OrderPersistence as "OrderPersistence"
+participant OrderTableHelper as "OrderTableHelper"
+participant OrderDialogHelper as "OrderDialogHelper"
+participant OrderUpdateListener as "OrderUpdateListener"
+
+' Application startup & UI load
+LauncherKt -> OrderTrackingApp: main(args)
+OrderTrackingApp -> OrderTrackingController: initialize()
+OrderTrackingController -> main_fxml: loadFXML("/com/abc/main.fxml")
+OrderTrackingController -> OrderTableHelper: setupTable()
+OrderTrackingController -> OrderFileManager: startFileWatcher()
+OrderFileManager -> FileWatcher: startWatching()
+
+... File watcher detects a new order file (JSON or XML) ...
+FileWatcher -> OrderFileManager: onFileCreated(file)
+OrderFileManager -> OrderIn: importOrder(file)
+
+alt file is JSON
+  OrderIn -> JsonOrderImporter: parse(file)
+  JsonOrderImporter --> OrderIn: ImportResult(order)
+else file is XML
+  OrderIn -> XmlOrderImporterAdapter: parse(file)
+  XmlOrderImporterAdapter --> OrderIn: ImportResult(order)
+end
+
+OrderIn -> OrderManager: submitOrder(order)
+activate OrderManager
+OrderManager -> OrderPersistence: saveOrderState(order)
+OrderPersistence --> OrderManager: ack
+OrderManager -> OrderTableHelper: addOrder(order)
+OrderTableHelper --> OrderTrackingController: refreshView()
+OrderManager --> OrderDialogHelper: maybeShowDialog(order)
+deactivate OrderManager
+
+' Notifying update listeners (separate flow)
+OrderIn -> OrderUpdateListener: notify(order)
+OrderUpdateListener -> OrderManager: onOrderUpdate(order)
+OrderManager --> OrderUpdateListener: handled
+
+@enduml
